@@ -15,3 +15,10 @@ dotnet build
 cd Compressionproject
 dotnet run
 ```
+
+## Example
+
+```
+cd Compressionproject
+dotnet run -- ../CompressionProject.Tests/inputFile.txt --output ../CompressionProject.Tests/output.test --verbose
+```
