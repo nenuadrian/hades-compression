@@ -16,6 +16,12 @@ cd Compressionproject
 dotnet run
 ```
 
+## Test
+
+```
+cd CompressionProject.Tests && dotnet test --verbosity normal
+```
+
 ## Example
 
 ### Compression

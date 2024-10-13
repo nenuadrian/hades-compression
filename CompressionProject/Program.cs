@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-class Program
+public class Program
 {
   static async Task<int> Main(string[] args)
   {
@@ -58,7 +58,7 @@ class Program
     return await rootCommand.InvokeAsync(args);
   }
 
-  static Dictionary<byte, int> BuildFrequencyTable(byte[] data)
+  private static Dictionary<byte, int> BuildFrequencyTable(byte[] data)
   {
     var frequencyTable = new Dictionary<byte, int>();
 
@@ -75,7 +75,7 @@ class Program
   }
 
 
-  static HuffmanNode BuildHuffmanTree(Dictionary<byte, int> frequencyTable)
+  private static HuffmanNode BuildHuffmanTree(Dictionary<byte, int> frequencyTable)
   {
     var priorityQueue = new List<HuffmanNode>();
 
@@ -102,7 +102,7 @@ class Program
     return priorityQueue[0];
   }
 
-  static void BuildHuffmanTable(HuffmanNode node, string bitString, Dictionary<byte, string> huffmanTable)
+  private static void BuildHuffmanTable(HuffmanNode node, string bitString, Dictionary<byte, string> huffmanTable)
   {
     if (node.IsLeaf)
     {
@@ -115,14 +115,14 @@ class Program
     }
   }
 
-  static Dictionary<byte, string> CreateHuffmanTable(HuffmanNode root)
+  private static Dictionary<byte, string> CreateHuffmanTable(HuffmanNode root)
   {
     var huffmanTable = new Dictionary<byte, string>();
     BuildHuffmanTable(root, "", huffmanTable);
     return huffmanTable;
   }
 
-  static byte[] EncodeData(byte[] data, Dictionary<byte, string> huffmanTable)
+  private static byte[] EncodeData(byte[] data, Dictionary<byte, string> huffmanTable)
   {
     var encodedString = new System.Text.StringBuilder();
 
@@ -143,7 +143,7 @@ class Program
     return bitArray.ToArray();
   }
 
-  static byte[] Compress(byte[] data, bool verbose)
+  public static byte[] Compress(byte[] data, bool verbose)
   {
     // Step 1: Build frequency table
     var frequencyTable = BuildFrequencyTable(data);
@@ -178,7 +178,7 @@ class Program
     }
   }
 
-  static byte[] Decompress(byte[] compressedData, bool verbose)
+  public static byte[] Decompress(byte[] compressedData, bool verbose)
   {
     using (var memoryStream = new System.IO.MemoryStream(compressedData))
     using (var reader = new System.IO.BinaryReader(memoryStream))
