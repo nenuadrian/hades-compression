@@ -11,24 +11,16 @@ class Program
 {
   static async Task<int> Main(string[] args)
   {
-    // Create a root command with a description
     var rootCommand = new RootCommand("Custom compression library using Huffman encoding.")
         {
             new Argument<string>("input", "The input file to be compressed."),
             new Option<string>("--output", "The output compressed file (optional, default is input.huff)."),
             new Option<bool>("--verbose", "Enable verbose output."),
-            new Option<bool>("--decompress", "Decompress.")
+            new Option<bool>("--decompress", "Decompress the input.")
         };
 
-    // Set up handler to process arguments
     rootCommand.SetHandler((string input, string output, bool verbose, bool decompress) =>
     {
-      if (verbose)
-      {
-        Console.WriteLine("Verbose mode enabled.");
-      }
-
-      // If no output file is provided, default to input.huff
       if (string.IsNullOrWhiteSpace(output))
       {
         output = $"{Path.GetFileNameWithoutExtension(input)}.huff";
@@ -39,9 +31,8 @@ class Program
 
       if (!decompress)
       {
-        var compressedData = HuffmanCompress(inputData, verbose);
+        var compressedData = Compress(inputData, verbose);
 
-        // Write the compressed data to the output file
         File.WriteAllBytes(output, compressedData);
 
         if (verbose)
@@ -52,9 +43,8 @@ class Program
       }
       else
       {
-        var decompressedData = HuffmanDecompress(inputData, verbose);
+        var decompressedData = Decompress(inputData, verbose);
 
-        // Write the compressed data to the output file
         File.WriteAllBytes(output, decompressedData);
 
         if (verbose)
@@ -63,68 +53,53 @@ class Program
           Console.WriteLine($"Decompressed file saved to: {output}");
         }
       }
-
-
-
     }, rootCommand.Arguments[0], rootCommand.Options[0], rootCommand.Options[1], rootCommand.Options[2]);
 
-    // Invoke the root command with the parsed arguments
     return await rootCommand.InvokeAsync(args);
   }
 
-  // Huffman Node
-  class HuffmanNode
+  static Dictionary<byte, int> BuildFrequencyTable(byte[] data)
   {
-    public byte? ByteValue { get; set; }
-    public int Frequency { get; set; }
-    public HuffmanNode Left { get; set; }
-    public HuffmanNode Right { get; set; }
+    var frequencyTable = new Dictionary<byte, int>();
 
-    // Constructor for leaf nodes
-    public HuffmanNode(byte value, int frequency)
+    foreach (var b in data)
     {
-      ByteValue = value;
-      Frequency = frequency;
+      if (!frequencyTable.ContainsKey(b))
+      {
+        frequencyTable[b] = 0;
+      }
+      frequencyTable[b]++;
     }
 
-    // Constructor for internal nodes
-    public HuffmanNode(HuffmanNode left, HuffmanNode right)
-    {
-      ByteValue = null; // Internal nodes don't hold byte values
-      Left = left;
-      Right = right;
-      Frequency = left.Frequency + right.Frequency;
-    }
-
-    public bool IsLeaf => ByteValue.HasValue;
+    return frequencyTable;
   }
+
 
   static HuffmanNode BuildHuffmanTree(Dictionary<byte, int> frequencyTable)
   {
-    var priorityQueue = new PriorityQueue<HuffmanNode, int>();
+    var priorityQueue = new List<HuffmanNode>();
 
-    // Step 1: Create a leaf node for each symbol and add it to the priority queue
     foreach (var entry in frequencyTable)
     {
-      priorityQueue.Enqueue(new HuffmanNode(entry.Key, entry.Value), entry.Value);
+      priorityQueue.Add(new HuffmanNode(entry.Key, entry.Value));
     }
 
-    // Step 2: Build the Huffman tree
+    priorityQueue = priorityQueue.OrderBy(node => node.Frequency).ToList();
+
     while (priorityQueue.Count > 1)
     {
-      // Remove two nodes of the highest priority (lowest frequency)
-      var left = priorityQueue.Dequeue();
-      var right = priorityQueue.Dequeue();
+      var left = priorityQueue[0];
+      var right = priorityQueue[1];
+      priorityQueue.RemoveAt(0);
+      priorityQueue.RemoveAt(0);
 
-      // Create a new internal node with the two removed nodes as children
       var parentNode = new HuffmanNode(left, right);
+      priorityQueue.Add(parentNode);
 
-      // Add the parent node back to the priority queue
-      priorityQueue.Enqueue(parentNode, parentNode.Frequency);
+      priorityQueue = priorityQueue.OrderBy(node => node.Frequency).ToList();
     }
 
-    // The remaining node is the root of the Huffman tree
-    return priorityQueue.Dequeue();
+    return priorityQueue[0];
   }
 
   static void BuildHuffmanTable(HuffmanNode node, string bitString, Dictionary<byte, string> huffmanTable)
@@ -140,60 +115,51 @@ class Program
     }
   }
 
-  static byte[] HuffmanCompress(byte[] data, bool verbose)
+  static Dictionary<byte, string> CreateHuffmanTable(HuffmanNode root)
   {
-    // Step 1: Build a frequency table
-    var frequencyTable = new Dictionary<byte, int>();
-    foreach (var b in data)
-    {
-      if (!frequencyTable.ContainsKey(b))
-        frequencyTable[b] = 0;
-      frequencyTable[b]++;
-    }
-
-    if (verbose)
-    {
-      Console.WriteLine("Frequency table built:");
-      foreach (var entry in frequencyTable)
-      {
-        Console.WriteLine($"Byte: {entry.Key} - Frequency: {entry.Value}");
-      }
-    }
-
-    // Step 2: Build the Huffman tree
-    var root = BuildHuffmanTree(frequencyTable);
-
-    // Step 3: Build the Huffman encoding table
     var huffmanTable = new Dictionary<byte, string>();
     BuildHuffmanTable(root, "", huffmanTable);
+    return huffmanTable;
+  }
 
-    if (verbose)
-    {
-      Console.WriteLine("Huffman encoding table:");
-      foreach (var entry in huffmanTable)
-      {
-        Console.WriteLine($"Byte: {entry.Key} - Code: {entry.Value}");
-      }
-    }
+  static byte[] EncodeData(byte[] data, Dictionary<byte, string> huffmanTable)
+  {
+    var encodedString = new System.Text.StringBuilder();
 
-    // Step 4: Encode the input data
-    var encodedString = new StringBuilder();
     foreach (var b in data)
     {
       encodedString.Append(huffmanTable[b]);
     }
 
-    // Convert the encoded string to bytes
+    // Convert the encoded bit string to byte array
     var bitArray = new List<byte>();
+
     for (int i = 0; i < encodedString.Length; i += 8)
     {
       string byteString = encodedString.ToString(i, Math.Min(8, encodedString.Length - i));
-      bitArray.Add(Convert.ToByte(byteString.PadRight(8, '0'), 2)); // Pad right for incomplete bytes
+      bitArray.Add(Convert.ToByte(byteString.PadRight(8, '0'), 2));
     }
 
-    // Step 5: Write frequency table and encoded data to output
-    using (var memoryStream = new MemoryStream())
-    using (var writer = new BinaryWriter(memoryStream))
+    return bitArray.ToArray();
+  }
+
+  static byte[] Compress(byte[] data, bool verbose)
+  {
+    // Step 1: Build frequency table
+    var frequencyTable = BuildFrequencyTable(data);
+
+    // Step 2: Build Huffman Tree
+    var root = BuildHuffmanTree(frequencyTable);
+
+    // Step 3: Build Huffman Table
+    var huffmanTable = CreateHuffmanTable(root);
+
+    // Step 4: Encode Data
+    var encodedData = EncodeData(data, huffmanTable);
+
+    // Step 5: Write Frequency Table and Encoded Data
+    using (var memoryStream = new System.IO.MemoryStream())
+    using (var writer = new System.IO.BinaryWriter(memoryStream))
     {
       // Write frequency table size
       writer.Write(frequencyTable.Count);
@@ -206,16 +172,16 @@ class Program
       }
 
       // Write encoded data
-      writer.Write(bitArray.ToArray());
+      writer.Write(encodedData);
 
       return memoryStream.ToArray();
     }
   }
 
-  static byte[] HuffmanDecompress(byte[] compressedData, bool verbose)
+  static byte[] Decompress(byte[] compressedData, bool verbose)
   {
-    using (var memoryStream = new MemoryStream(compressedData))
-    using (var reader = new BinaryReader(memoryStream))
+    using (var memoryStream = new System.IO.MemoryStream(compressedData))
+    using (var reader = new System.IO.BinaryReader(memoryStream))
     {
       // Step 1: Read frequency table
       int frequencyTableSize = reader.ReadInt32();
@@ -228,51 +194,33 @@ class Program
         frequencyTable[key] = value;
       }
 
-      if (verbose)
-      {
-        Console.WriteLine("Frequency table read from compressed data:");
-        foreach (var entry in frequencyTable)
-        {
-          Console.WriteLine($"Byte: {entry.Key} - Frequency: {entry.Value}");
-        }
-      }
-
-      // Step 2: Rebuild the Huffman tree
+      // Step 2: Rebuild Huffman Tree
       var root = BuildHuffmanTree(frequencyTable);
 
-      // Step 3: Read encoded data
-      var encodedBits = new List<byte>();
+      // Step 3: Decode Data
+      var currentNode = root;
+      var decodedBytes = new List<byte>();
+      var bits = new List<bool>();
+
+      // Read all bytes from the memory stream after frequency table
       while (memoryStream.Position < memoryStream.Length)
       {
-        encodedBits.Add(reader.ReadByte());
-      }
-
-      // Step 4: Decode the data using the Huffman tree
-      var decodedBytes = new List<byte>();
-      var currentNode = root;
-      foreach (byte b in encodedBits)
-      {
-        // For each byte, read 8 bits
-        for (int i = 0; i < 8; i++)
+        byte b = reader.ReadByte();
+        for (int i = 7; i >= 0; i--)
         {
-          if (currentNode.IsLeaf)
-          {
-            decodedBytes.Add(currentNode.ByteValue.Value);
-            currentNode = root;
-          }
-
-          // Extract the bit (0 or 1) from the byte
-          bool bit = (b & (1 << (7 - i))) != 0;
-
-          // Traverse the Huffman tree based on the bit
-          currentNode = bit ? currentNode.Right : currentNode.Left;
+          bits.Add((b & (1 << i)) != 0);
         }
       }
 
-      // Handle the case where we end on a leaf node
-      if (currentNode.IsLeaf)
+      foreach (var bit in bits)
       {
-        decodedBytes.Add(currentNode.ByteValue.Value);
+        currentNode = bit ? currentNode.Right : currentNode.Left;
+
+        if (currentNode.IsLeaf)
+        {
+          decodedBytes.Add(currentNode.ByteValue.Value);
+          currentNode = root;
+        }
       }
 
       return decodedBytes.ToArray();

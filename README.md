@@ -18,7 +18,16 @@ dotnet run
 
 ## Example
 
+### Compression
+
 ```
 cd Compressionproject
 dotnet run -- ../CompressionProject.Tests/inputFile.txt --output ../CompressionProject.Tests/output.test --verbose
+```
+
+### Decompress
+
+```
+cd Compressionproject
+dotnet run -- ../CompressionProject.Tests/output.test --output ../CompressionProject.Tests/outputFile.txt --verbose --decompress
 ```
