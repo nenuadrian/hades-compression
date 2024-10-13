@@ -1,6 +1,8 @@
-# compression
+# Hades Compression
 
 [![.NET](https://github.com/nenuadrian/hades-compression/actions/workflows/dotnet.yml/badge.svg)](https://github.com/nenuadrian/hades-compression/actions/workflows/dotnet.yml)
+
+Simple huffman compression implementation in .net for learning purposes.
 
 ## Build
 
@@ -31,7 +33,7 @@ cd Compressionproject
 dotnet run -- ../CompressionProject.Tests/inputFile.txt --output ../CompressionProject.Tests/output.test --verbose
 ```
 
-### Decompress
+### Decompression
 
 ```
 cd Compressionproject
