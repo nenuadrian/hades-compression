@@ -4,6 +4,9 @@
 
 Simple huffman compression implementation in .net for learning purposes.
 
+![logo](docs/hades.jpg)
+
+
 ## Build
 
 ```
