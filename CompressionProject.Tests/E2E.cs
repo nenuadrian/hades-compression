@@ -36,6 +36,8 @@ public class E2ETest
     byte[] inputData = Encoding.UTF8.GetBytes(originalString);
 
     byte[] compressedData = Program.Compress(inputData, verbose: false);
+    byte[] decompressedData = Program.Decompress(compressedData, verbose: false);
+    string decompressedString = Encoding.UTF8.GetString(decompressedData);
 
     double compressionRatio = (double)compressedData.Length / inputData.Length;
 
