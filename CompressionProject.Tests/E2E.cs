@@ -19,7 +19,6 @@ public class E2ETest
   [Fact]
   public void CompressAndDecompress_LongString_ShouldReturnOriginalString()
   {
-    // Arrange
     string originalString = new string('A', 1000) + new string('B', 1000);
     byte[] inputData = Encoding.UTF8.GetBytes(originalString);
 
@@ -28,6 +27,15 @@ public class E2ETest
     string decompressedString = Encoding.UTF8.GetString(decompressedData);
 
     Assert.Equal(originalString, decompressedString);
+  }
+
+  [Fact]
+  public void CompressAndDecompress_LongString_ShouldCompressPatternsAndAchieveGoodCompressionRate()
+  {
+    string originalString = new string('A', 1000) + new string('B', 1000);
+    byte[] inputData = Encoding.UTF8.GetBytes(originalString);
+
+    byte[] compressedData = Program.Compress(inputData, verbose: false);
 
     double compressionRatio = (double)compressedData.Length / inputData.Length;
 
